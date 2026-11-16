@@ -31,16 +31,25 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 #retry .icon{width:28px;height:28px;transition:transform .5s var(--ease)}
 #retry.spin .icon{transform:rotate(360deg)}
 [data-theme=mist] #retry{backdrop-filter:blur(10px)}
-section.history{width:100%;max-width:560px;padding:0 20px 28px}
-.hhead{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:14px;margin-bottom:10px}
-.hhead h2{font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.hhead .ghost{width:36px;height:36px}
-.hhead .ghost .icon{width:18px;height:18px}
-#list{list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:8px;max-height:30vh;overflow:auto}
-#list li{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:15px;padding:6px 12px;border:1px solid var(--line);border-radius:var(--radius);background:var(--card);color:var(--fg)}
-#list li:first-child{border-color:var(--accent)}
-#empty{color:var(--muted);font-size:14px}
-dialog{border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--fg);padding:22px;width:min(340px,90vw);font-family:var(--font)}
+.hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.hrow h3{margin:0}
+.hrow .ghost{width:36px;height:36px}
+.hrow .ghost .icon{width:18px;height:18px}
+button:focus:not(:focus-visible){outline:none}
+.ghost:disabled{opacity:.35;cursor:default;background:none}
+.hbtn{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border-radius:12px;text-align:left;margin-top:14px;border-top:1px solid var(--line);border-radius:0;padding-top:16px}
+.hbtn:hover{color:var(--accent)}
+.hbtn .icon{width:20px;height:20px;color:var(--muted)}
+.hbtn span{flex:1}
+.hbtn small{color:var(--muted);font-variant-numeric:tabular-nums}
+#list{list-style:none;padding:0;max-height:min(55vh,440px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-top:1px solid var(--line);border-bottom:1px solid var(--line);scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+#list li{display:flex;align-items:baseline;justify-content:space-between;padding:11px 4px;border-bottom:1px solid var(--line)}
+#list li:last-child{border-bottom:0}
+#list .n{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;min-width:3em}
+#list .t{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:20px;font-weight:var(--w)}
+#list li:first-child .t{color:var(--accent)}
+#empty{color:var(--muted);font-size:14px;padding:24px 0;text-align:center}
+dialog{margin:auto;border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--fg);padding:22px;width:min(340px,90vw);font-family:var(--font)}
 [data-theme=mist] dialog{background:#f1f4f2}
 [data-theme=night] dialog{background:#15171a}
 [data-theme=paper] dialog{background:#fbf9f4}
@@ -60,14 +69,16 @@ dialog h3{font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:upp
   <div id="time" aria-live="polite">--:--</div>
   <button id="retry" aria-label="Обновить" title="Обновить"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
 </main>
-<section class="history">
-  <div class="hhead"><h2>История</h2><button class="ghost" id="reset" aria-label="Сбросить историю" title="Сбросить историю"><svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div>
-  <ul id="list"></ul><p id="empty">Пока пусто</p>
-</section>
 <dialog id="settings">
   <h3>Стиль</h3>
   <div role="radiogroup" id="themes"></div>
+  <button class="hbtn" id="openHistory"><svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/><path d="M12 7v5l3 2"/></svg><span>История</span><small id="hcount">0</small></button>
   <button class="close" id="closeSettings">Готово</button>
+</dialog>
+<dialog id="historyDlg">
+  <div class="hrow"><h3>История</h3><button class="ghost" id="reset" aria-label="Сбросить историю" title="Сбросить историю"><svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div>
+  <ol id="list"></ol><p id="empty">Пока пусто</p>
+  <button class="close" id="closeHistory">Назад</button>
 </dialog>
 <script>
 (function(){
@@ -83,7 +94,7 @@ dialog h3{font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:upp
   var history=load(KH,[]);
   function rand(){var b=new Uint32Array(1);crypto.getRandomValues(b);var m=b[0]%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')}
   function paint(t){$('time').innerHTML=t.replace(':','<span class="colon">:</span>')}
-  function renderHistory(){var l=$('list');l.innerHTML='';history.forEach(function(t){var li=document.createElement('li');li.textContent=t;l.appendChild(li)});$('empty').style.display=history.length?'none':'block';$('reset').disabled=!history.length;$('reset').style.opacity=history.length?1:.35}
+  function renderHistory(){var l=$('list');l.innerHTML='';var n=history.length;history.forEach(function(t,i){var li=document.createElement('li');var a=document.createElement('span');a.className='n';a.textContent=(n-i);var b=document.createElement('span');b.className='t';b.textContent=t;li.appendChild(a);li.appendChild(b);l.appendChild(li)});l.style.display=n?'block':'none';$('empty').style.display=n?'none':'block';$('reset').disabled=!n;$('hcount').textContent=n}
   function next(){var t=rand();var el=$('time');el.classList.add('out');setTimeout(function(){paint(t);el.classList.remove('out')},180);history.unshift(t);if(history.length>MAX)history.length=MAX;save(KH,history);renderHistory();var r=$('retry');r.classList.remove('spin');void r.offsetWidth;r.classList.add('spin')}
   function setTheme(id){if(!THEMES.some(function(t){return t.id===id}))id='paper';document.documentElement.dataset.theme=id;save(KT,id);var th=THEMES.filter(function(t){return t.id===id})[0];document.querySelector('meta[name=theme-color]').content=th.meta;Array.prototype.forEach.call(document.querySelectorAll('.opt'),function(b){b.setAttribute('aria-checked',b.dataset.id===id)})}
   var box=$('themes');THEMES.forEach(function(t){var b=document.createElement('button');b.className='opt';b.setAttribute('role','radio');b.dataset.id=t.id;b.innerHTML='<span class="sw" style="background:'+t.sw+'"></span><span>'+t.name+'<small>'+t.desc+'</small></span>';b.onclick=function(){setTheme(t.id)};box.appendChild(b)});
@@ -93,7 +104,10 @@ dialog h3{font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:upp
   $('openSettings').onclick=function(){$('settings').showModal()};
   $('closeSettings').onclick=function(){$('settings').close()};
   $('settings').addEventListener('click',function(e){if(e.target===this)this.close()});
-  document.addEventListener('keydown',function(e){if((e.code==='Space'||e.key==='r')&&!$('settings').open&&e.target===document.body){e.preventDefault();next()}});
+  $('openHistory').onclick=function(){$('settings').close();renderHistory();$('historyDlg').showModal();if(document.activeElement)document.activeElement.blur();$('list').scrollTop=0};
+  $('closeHistory').onclick=function(){$('historyDlg').close();$('settings').showModal()};
+  $('historyDlg').addEventListener('click',function(e){if(e.target===this)this.close()});
+  document.addEventListener('keydown',function(e){if((e.code==='Space'||e.key==='r')&&!$('settings').open&&!$('historyDlg').open&&e.target===document.body){e.preventDefault();next()}});
   renderHistory();next();
 })();
 </script>
